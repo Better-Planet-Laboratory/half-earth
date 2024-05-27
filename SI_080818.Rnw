@@ -1,0 +1,1031 @@
+\documentclass{article}
+
+\title{ The challenge of feeding the world while conserving half the planet \\Zia Mehrabi, Erle C. Ellis and Navin Ramankutty}
+\author{zia.mehrabi@ubc.ca}
+\usepackage[margin=2.5 cm]{geometry}
+\usepackage{color}
+\usepackage[parfill]{parskip}
+\usepackage{lineno}
+\usepackage{hyperref}
+\usepackage{subfig}
+\usepackage{float}
+% \setcounter{secnumdepth}{0} 
+%above line makes no numbers in sections%
+\usepackage[backend=bibtex]{biblatex}
+\usepackage{graphicx}
+\graphicspath{{}}
+
+
+% \linenumbers
+\bibliography{ReferencesPapersMehrabi2016.bib, Rpackages.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%% References %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%1) Ref for papers (ref for pacakges are created further down)
+%% !! delete the file when adding new references
+<<deleteBib, include=FALSE>>=
+system("rm ReferencesPapersMehrabi2016.bib")
+@
+
+\input{ReferencesPapersTex} 
+%% this is the ".tex" file that creates "ReferencesPapersMehrabi2016.bib".
+%% This file may differ from that file named the same way found in Appendix B folder
+
+\begin{document}
+
+
+<<knitrOpts, include=FALSE>>=
+library(knitr)
+opts_chunk$set(concordance = TRUE,
+               fig.align = 'center',
+               fig.pos = 'H',  ## no floating
+               crop = hook_pdfcrop,
+               tidy = TRUE,
+               comment = NA,
+               message = FALSE,
+               warning = FALSE, 
+               error=T)
+##
+options(digits = 2)
+@ 
+
+\maketitle
+
+\renewcommand{\contentsname}{Supplementary Information}
+\renewcommand{\refname}{Supplementary References}
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Supplementary Notes}
+\subsection{Reproducibility}
+
+We use the \textbf{R} packages \texttt{knitr}  and \texttt{checkpoint} \cite{R-knitr, R-checkpoint}. The package \texttt{knitr} facilitates producing a dynamic document that contains all the steps required to analyze the data. \texttt{checkpoint()} will install all packages versions for you that we used in our analysis to avoid result discrepencies that may arise from software differences. Thus the reader is provided with all the code to fully reproduce the analysis, and adapt or repurpose it for another analyses.
+
+<<checkPoint,out.width='60',size='footnotesize',message=FALSE, warning=FALSE>>=
+library("checkpoint")
+checkpoint(snapshotDate = "2018-03-01")
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%% 2) Ref for packages
+<<createPackagesBib, include=FALSE>>=
+write_bib(x = c("raster", "rgdal", "ggplot2", "plyr", "sp", "R.matlab", "rworldmap", "car", "maptools", "knitr", "checkpoint", "reshape2","gridExtra","cowplot", "data.table"),
+          file = "Rpackages.bib")
+@
+
+For the analysis in this document we will be using the \texttt{raster} \cite{R-raster}, \texttt{rgdal} \cite{R-rgdal}, \texttt{ggplot2} \cite{R-ggplot2}, \texttt{plyr} \cite{R-plyr}, \texttt{sp} \cite{R-sp}, \texttt{R.matlab} \cite{R-R.matlab}, \texttt{rworldmap} \cite{R-rworldmap}, \texttt{car} \cite{R-car},  \texttt{maptools}\cite{R-maptools} , \texttt{reshape2}\cite{R-reshape2} ,\texttt{gridExtra}\cite{R-gridExtra},amd
+,\texttt{cowplot}\cite{R-cowplot}, and, \texttt{data.table}\cite{R-data.table} packages. 
+<<loadpackages,out.width='60',size='footnotesize', results='hide'>>=
+packages<-c("raster", "rgdal", "ggplot2", "plyr", "sp", 
+            "R.matlab", "rworldmap", "car", "maptools", 
+            "knitr", "reshape2","gridExtra","cowplot", "data.table")
+lapply(packages, require, character=TRUE)
+gpclibPermit()
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Aims of this document}
+
+The aim of this document is to provide the code to reproduce the analysis presented in Mehrabi, Ellis and Ramankutty 2018 entitled ``The challenge of feeding the world while conserving half the planet". Half-Earth is a recent proposal “to devote half the surface of the Earth to nature.” (http://www.half-earthproject.org/; http://natureneedshalf.org/). The underlying rationale for Half-Earth derives from scaling relationships between habitat area and species numbers which imply that conserving half of Earth's habitat area would save ~85\% of existing species on the planet \cite{Wilson2016}. The practical costs of Half-Earth incurred through trade-offs with other land uses, such as agriculture, and its impacts on already disadvantaged populations around the world still remain poorly understood \cite{Balmford2017}. This analysis aims to help fill this research gap.
+
+The nuts and bolts of this analysis is a simple thought experiment constructed to better understand some of the broad trade-offs between agriculture and Half-Earth proposal. The document is structured into two sections, in section \ref{datprep} we process the data, in section \ref{analysis} we conduct the thought experiment,  create the plots used in the figure in the main text of the manuscript, and conduct some additional analysis, and finally in section \ref{analysissup} we plot the Supplementary Figures. For brevity the code in section \ref{datprep} is not evaluated in this document.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Supplementary Methods A}
+\label{datprep}
+
+\subsection{Data preparation overview}
+
+To assess the trade-offs between Half-Earth and agriculture we compiled 8 spatial datasets. Details of each and the currently live urls and points of contact for data set acquisition are listed below. In some cases these data are not available for us to redistribute, and so those wishing to reproduce this analysis are recommended to approach the persons responsible, and back-date to the dates of acquisition listed below.
+
+\begin{enumerate}
+\item Global Cropland and Pasture Area \cite{Ramankutty2008}, retrieved online from www.earthstat.org , on December 13th 2017. 
+\item MODIS land cover \cite{Friedl2010}, retrieved online from http://glcf.umd.edu/data/lc/, on December 17th 2017.
+\item Calorie production for the world’s 41 major crop plants,\cite{Cassidy2013} retrieved directly from the original authors, available from Minnesota Insitute on the Environment (jsgerber@umn.edu)
+\item The World Database of Protected Areas, \cite{UNEP-WCMC2017}, retrieved online from https://www.protectedplanet.net/, on December 13th 2017. 
+\item Key Biodiversity Areas 2017 \cite{BirdLife2017} retrieved via FTP link from Gill Bunting at Bird Life International (Gill.Bunting@birdlife.org) on Nov 6th 2017.
+\item Ecoregion boundaries,\cite{Dinerstein2017}, retrieved online from https://storage.googleapis.com/teow2016/Ecoregions2017.zip, on April 2017 
+\item Country boundaries \cite{R-rworldmap}, retrieved internally in R.
+\item Potential Natural Vegetation, \cite{RamankuttyFoley1999}, retrieved online from on April 30th 2018, from www.earthstat.org. 
+\end{enumerate}
+
+All datasets were rasterized, projected to Eckert IV’s equal area at a spatial resolution of ~8.4km x ~8.4 km (the most accurate scale for reproduction of global sums for data set \cite{Cassidy2013}, and set to a common extent). This section explains that processing.
+
+\subsection{Rasterizing}
+\subsubsection{Ecoregions}
+First we read in the ecoregion data, rasterize it, and write to file.
+<<Dinn, out.width='60',size='footnotesize', eval=FALSE>>=
+Dinn<-shapefile("halfearthdata/Ecoregion2017_Erle/Ecoregions2017.shp")
+raster.Dinn<-raster(resolution = 0.0833282)
+extent(raster.Dinn) <- extent(Dinn)
+Dinn$ECO_NAME<-as.factor(Dinn$ECO_NAME)
+Dinn.raster <- rasterize(as(Dinn, "SpatialPolygons"), raster.Dinn, field = Dinn@data[,"ECO_NAME"],fun="first")
+getwd()
+Dinn.rast <- writeRaster(Dinn.raster, "halfearthdata/processed/Dinnrast.tif", format="GTiff", overwrite=TRUE)
+@
+
+\subsubsection{KBA}
+Then we read in the KBA data, rasterize it, and write to file.
+<<KBA, out.width='60',size='footnotesize', eval=FALSE>>=
+KBA<-shapefile("KBAsGlobal_2017_1a/Global_KBA_poly.shp")
+raster.KBA<-raster(res = c(0.0833282,0.0833282))
+extent(raster.KBA) <- extent(KBA)
+KBA.raster <- rasterize(as(KBA, "SpatialPolygons"), raster.KBA, field = KBA@data[,"SITRECID"],fun="first")
+kbavals<-values(KBA) #set non KBA values to NA
+kbavals2<-ifelse(kbavals>0,1,NA)
+KBA2<-KBA
+values(KBA2)<-kbavals2
+KBA.rast<- writeRaster(KBA2, "halfearthdata/processed/KBArast.tif", format="GTiff", overwrite=TRUE)
+@
+
+\subsubsection{Crop calories}
+Then we read in the global crop calorie data, and write to file. These data are supplied as .mat files.
+<<Cal, out.width='60',size='footnotesize', eval=FALSE>>=
+Cass.total<-readMat("halfearthdata/Emily_data/Cassidy Crop Allocation and Delivery/GlobalTotalkcal.mat")
+rasterD <-raster(ncol=4320, nrow=2160)
+values(rasterD)<-c(Cass.total$GlobalTotalkcal)
+kcal.41<-rasterD
+plot(kcal.41)
+kcal.rast<- writeRaster(kcal.41, "halfearthdata/processed/kcalrast.tif", format="GTiff", overwrite=TRUE)
+@
+
+We also retrieve the calorie delivery fraction data from Cassidy et al. A unit of 1 identifies that all kcal produced are delivered as food, wheras a unit of \textless 1 identifies that some proportion of calories are fed to animals from that pixel. 
+<<Calprop, out.width='60',size='footnotesize', eval=FALSE>>=
+Cass.food<-readMat("halfearthdata/Emily_data/Cassidy Crop Allocation and Delivery/GlobalFoodkcal.mat")
+rasterD <-raster(ncol=4320, nrow=2160)
+# Cass.food$GlobalFoodkcal[is.na(Cass.food$GlobalFoodkcal)] <- 0 #replace NA with zero
+values(rasterD)<-c(Cass.food$GlobalFoodkcal)
+kcal.food<-rasterD
+kcal.food<- writeRaster(kcal.food, "halfearthdata/processed/kcal.food.tif", format="GTiff", overwrite=TRUE)
+@
+
+\subsubsection{WDPA}
+Here we read in the world protected area data. This data was first imported into QGIS \cite{QGIS}, to simplify the geometry with the default tolerance.  It was then rasterized it in QGIS, to reduce processing time in R. We set non-WDPA values in this raster to NA, and write the result to file.
+<<WDPA, out.width='60',size='footnotesize', eval=FALSE>>=
+WDPA<-raster("halfearthdata/WDPA_Oct2017/WDPA.tif")
+str(WDPA)
+wdpavals<-values(WDPA)#set non WDPA values to NA
+wdpavals2<-ifelse(wdpavals>0,1,NA)
+WDPA2<-WDPA
+values(WDPA2)<-wdpavals2
+WDPA.rast<- writeRaster(WDPA2, "halfearthdata/processed/WDPArast.tif", format="GTiff", overwrite=TRUE)
+@
+
+\subsubsection{Countries}
+Finally we make a raster of the world country data from the \texttt{rworldmap} package.
+<<country, out.width='60',size='footnotesize', eval=FALSE>>=
+world<-getMap(resolution='low')
+raster.world<-raster(res = c(0.0833282,0.0833282))
+extent(raster.world) <- extent(world)
+world.raster <- rasterize(as(world, "SpatialPolygons"), raster.world, field = world@data[,"ADMIN"],fun="first")
+world.rast<- writeRaster(world.raster, "halfearthdata/processed/worldrast.tif", format="GTiff", overwrite=TRUE)
+@
+
+\subsection{Additional processing}
+
+\subsubsection{Read data}
+Here we read in the data for additional processing. We read in the processed data sets outlined above, as well as two others. These include the MODIS LC data set as an indication of land cover, and potential natural vegetation.
+<<readpropcessed, out.width='60',size='footnotesize', eval=FALSE>>=
+KBA<-raster("halfearthdata/processed/KBArast.tif")
+CA<-raster("halfearthdata/CroplandPastureArea2000_Geotiff/cropland2000_area.tif")
+PA<-raster("halfearthdata/CroplandPastureArea2000_Geotiff/pasture2000_area.tif")
+Dinn<-raster("halfearthdata/processed/Dinnrast.tif")
+kcal<-raster("halfearthdata/processed/kcalrast.tif")
+kcal.food<-raster("halfearthdata/processed/kcal.food.tif")
+WDPA<-raster("halfearthdata/processed/WDPArast.tif")
+world<-raster("halfearthdata/processed/worldrast.tif")
+LC<-raster("halfearthdata/MODIS_GLCF/LC_hd_global_2012.tif")
+PNV<-raster("halfearthdata/potveg_geotiff/potentialvegetation_geotiff/potentialvegetation.tif")
+@
+
+\subsubsection{Convert to equal area}
+Here we project everything to be equal area (set to 8439m x 8439m, as this is with the best match for the kcal data, it is within 0.001\%). We use two methods of interpolation, bilinear for continuous data and nearest neighbour for categorical data.
+
+<<makeequalarea, out.width='60',size='footnotesize', eval=FALSE>>=
+rast.list.ngb<-list(Dinn,KBA, WDPA, LC, world, PNV)
+rast.list.bil<-list(kcal,CA,PA, kcal.food)
+
+rast.list.ngb.eq<-lapply(rast.list.ngb, function(x) 
+  projectRaster(x, res=c(8439, 8439),
+                crs="+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",method="ngb", over = T))
+
+rast.list.bil.eq<-lapply(rast.list.bil, function(x) 
+  projectRaster(x, res=c(8439, 8439), 
+                crs="+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0",method="bilinear", over = TRUE))
+
+rast.list<-c(rast.list.ngb.eq, rast.list.bil.eq) #combine data
+names(rast.list)<-c("Dinn","KBA", "WDPA", "LC", "world", "PNV","kcal","CA", "PA","kcal.food")
+@
+
+Now we double check that the sum of the original crop calorie data is equivalent to the  equal area representation. We find these are very close to each other, and so the equal area conversion is reasonable in aggregate for this variable.
+<<checkcass,out.width='60',size='footnotesize', eval=FALSE>>=
+sum(values(rast.list.bil.eq[[1]]), na.rm = T) #check kcal values 
+sum(values(kcal), na.rm = T)
+@
+
+\subsubsection{Back corrections}
+
+No reprojection of geospatial data is perfect. In some cases it can lead to nonsensical outputs. A good example of this is shown here with cropland and pasture data, where the sum of the original lat-long data on proportions of cropland and pasture in a cell is never greater than zero, but where for the derived products the summed area can exceed one. This is logically impossible in reality, but is an artifact created through the reprojection.
+<<exanplereproj1,out.width='60',size='footnotesize', eval=FALSE>>=
+plot(CA+PA) #original lat long
+plot(rast.list$PA+rast.list$CA) #eck 4 version
+@
+
+The details of the net differences between the aggregate sums of equal area projected and lat-long version are given below. As we can see reprojection reduced the global area of cropland by ~ 2\% and increased it for pasture by ~1\%.
+<<exanplereproj2, out.width='60',size='footnotesize',eval=FALSE>>= 
+cell.area=8439*8439 #area of grid cell
+sum(values(rast.list$CA)*cell.area, na.rm=T)/sum(values(CA)*cell.area, na.rm=T)   
+sum(values(rast.list$PA)*cell.area, na.rm=T)/sum(values(PA)*cell.area, na.rm=T)  
+@
+
+It is difficult to deal with these two issues easily in one fail swoop.  It is possible to calibrate using the original data sources pretty easily. This is done in the chunk of code below for continuous data. But this does not deal with the nonsensical output of having proportional coverage in pixels greater than one. 
+
+<<exanplereproj3, out.width='60',size='footnotesize',eval=FALSE>>=
+values(rast.list$CA)<-(values(rast.list$CA)/sum(values(rast.list$CA),na.rm=T))*sum(values(CA), na.rm=T)#CA
+values(rast.list$PA)<-(values(rast.list$PA)/sum(values(rast.list$PA),na.rm=T))*sum(values(PA), na.rm=T) #PA
+values(rast.list$kcal)<-(values(rast.list$kcal)/sum(values(rast.list$kcal),na.rm=T))*sum(values(kcal), na.rm=T) #food kcal
+values(rast.list$kcal.food)<-(values(rast.list$kcal.food)/
+ sum(values(rast.list$kcal.food),na.rm=T))*sum(values(kcal.food), na.rm=T) #kcal
+@
+
+One work around, is to ensure that no sum of proportional areas in pixels exceeds one.  We do this below, and preferentially reduce pasture areas within each pixel. A more exact approach, would be to write a spatial re-allocation algorithm that deals with both of these issues together.  However, for the purposes of this thought experiment, and for the specific results we provide, the approach taken here seems reasonable. Indeed, as we can see from below, not only have we now achieved sensible plot values, but we still have maintained our pasture aggregate sums to a high degree -- with our reprojected pasture areas being only 0.02\% less than the original lat long file. By focusing only on pasture in correcting for proportional coverage, the aggregate sums of all other continuous variables is maintained.
+
+<<exanplereproj4, out.width='60',size='footnotesize',eval=FALSE>>=
+values(rast.list$PA)<-ifelse(values(rast.list$PA)+values(rast.list$CA)>1,1-values(rast.list$CA), values(rast.list$PA))
+plot(rast.list$PA+rast.list$CA) 
+sum(values(rast.list$PA)*cell.area, na.rm=T)/sum(values(PA)*cell.area, na.rm=T)  
+@
+
+\subsubsection{Set extents}
+Next we need to trim the extents.  We can see from the plots below, and in the README for the MODIS LC data, that the LC data does not include Antarctica. In fact it only covers southern latitudes to -64 degrees.
+<<plotall,out.width='60',size='footnotesize', eval=FALSE>>=
+par(mfrow = c(1,1))
+lapply(rast.list, function(x) plot(x, main=names(x))) #check
+@
+
+Therefore, we need to expand the LC data to include the area that will house Antarctica.  We draw from the country data which includes a boundary for Antarctica. As explained by Prof. Rob Hijmans in his manual for the package (http://rspatial.org/spatial/rst/8-rastermanip.html), the extend function fills NA's in rows that are added.  We couple this with the crop function to maintain equal extents across all datasets, then apply the setExtent function to ensure that rounding is exactly the same across the files.
+<<extendthedata,out.width='60',size='footnotesize', eval=FALSE>>=
+ex1<-extent(rast.list$Dinn)
+rast.list.ex<-lapply(rast.list, function(x) extend(x, ex1)) #extend
+rast.list.c<-lapply(rast.list.ex, function(x) crop(x, ex1)) #then crop
+rast.list.et<-lapply(rast.list.c, function(x) setExtent(x, ex1, keepres=TRUE)) #then force extent to be the same
+@
+
+\subsubsection{Create stack}
+With the data all with the same resolution, extent and equal area CRS, we can now create a stack of all the layers.
+<<createstack,out.width='60',size='footnotesize', eval=FALSE>>=
+rast.all<-stack(rast.list.et)
+@
+
+Now let's check the plots again.
+<<checplot,out.width='60',size='footnotesize', eval=FALSE>>=
+plot(rast.all) #check
+@
+
+\subsection{Land class variable}
+\subsubsection{Cropland and pasture}
+We now need to make a common land class variable that merges cropland and pasture area data and MODIS LC data. We will use the Ramankutty et al. identifiers for cropland and pasture data.
+
+We  create a numeric code for each cropland, pasture and cropland-pasture mix and add this to the land class variable. For cropland we assign 18, for the pasture-cropland mix we assign 17 , and for pasture we assign 19.
+<<createPCCAmix,out.width='60',size='footnotesize', eval=FALSE>>=
+newclass<-ifelse(values(rast.all$CA) >0 & values(rast.all$PA) >0,17, 
+                 ifelse(values(rast.all$CA) > 0 & values(rast.all$PA) %in% c(0,NA)  ,18, 
+                        ifelse(values(rast.all$PA) >0 & values(rast.all$CA)   %in% c(0,NA) , 19, 
+                               values(rast.all$LC))))
+summary(as.factor(newclass)) #check 
+@
+
+\subsubsection{Antarctica}
+We need to specify Antarctica in the LC data .Antarctica is identified under an id of 9 in the country data. We therefore designate Antarctica an id of 15, to correspond to the id for "Rock and Ice" in the README given to accompany the LC file. We then check this by plotting, it looks good.  We then add this to the newclass variable. [We add this in here because doing it before defining cropland, mixed and pasture pixels, would lead to it being lost due to NAs in CA and PA data sets].
+<<addant,out.width='60',size='footnotesize', eval=FALSE>>=
+values(rast.all$LC)<-ifelse(values(rast.all$world)==9, 15, values(rast.all$LC))
+plot(rast.all$LC) #check Antarctica has been added
+newclass<-ifelse(values(rast.all$LC)==15, 15, newclass) #add to newclass
+@
+
+\subsubsection{WDPA and KBA}
+We then assign numeric values for the WDPA and KBA areas: 20, and 21 respectively. These may include agricultural production, but we will give these areas top priority in any Half-Earth Scenario for conservation. We keep the ocean as zero.
+<<addKBA,out.width='60',size='footnotesize', eval=FALSE>>=
+newclass<-ifelse(is.na(values(rast.all$KBA))|values(rast.all$LC)==0, newclass, 21)
+newclass<-ifelse(is.na(values(rast.all$WDPA))|values(rast.all$LC)==0, newclass, 20)
+@
+
+\subsubsection{Urban}
+We also maintain urban areas with agricultural production as urban.
+<<addurban,out.width='60',size='footnotesize', eval=FALSE>>=
+newclass<-ifelse(values(rast.all$LC)==13, 13, newclass)
+@
+
+\subsubsection{Add new LC}
+We then create a new layer in the stack for the new land class variable
+<<addlayer,out.width='60',size='footnotesize', eval=FALSE>>=
+rast.all$newclass<-rast.all$LC
+values(rast.all$newclass)<-as.numeric(newclass)
+summary(values(rast.all$newclass)) #check
+@
+
+And then join the data into a single data frame.
+<<saveasRDS,out.width='60',size='footnotesize', eval=FALSE>>=
+data.all<-data.frame(coordinates(rast.all), values(rast.all))
+summary(as.factor(data.all$newclass))
+@
+
+\subsubsection{Rank land classes}
+
+Finally we  recode and rank the land cover variables into a more limited number of classes. The rank represents the order in which we will give back individual pixels (``nature only landscape approach"), or area within pixels (``Shared landscape approach").  All agricultural areas are given back in order of least productivity. We define agricultural productivity based on calories gained from 41 major arable crops. The ranking for this hypothetical deal with nature is given below. The order of this ranking is not supposed to be definitive, but simply to highlight broad scale the trade-offs between Half-Earth and agricultural production. We assign water to be NA.
+
+\begin{enumerate}
+\item World protected areas 
+\item Key Biodiversity Areas
+\item Non-agricultural lands (Forests, Wetlands, Shrublands and savannas, Grasslands, Snow, Ice, Barren)
+\item Agricultural lands (Pasture)
+\item Agricultural lands (Mixed)
+\item Agricultural lands (Cropland)
+\item Urban
+\end{enumerate}
+
+\newpage
+<<recode,out.width='60',size='footnotesize', eval=FALSE>>=
+data.all$rank<-recode(data.all$newclass,
+ " c('0')= NA;
+   c('1','2','3','4','5','6', '7','8','9' ,'10', '11','12', '14','15', '16') = '3';
+   c('13')= '7';
+   c('17')= '6';
+   c('18')= '5';
+    c('19')= '4';
+   c('20')= '1';
+   c('21')= '2'
+  ")
+summary(as.factor(data.all$rank)) #check
+@
+
+
+\subsubsection{Rank by calories}
+We then need to compute the calories in each pixel. We compute this in a similar step-wise process  to the areas, for non crop productive locations (i.e. a value of zero), and for crop areas [split into non-food calories, i.e. feed and bio fuel and other, and food calories].
+
+<<kcaladd,out.width='60',size='footnotesize', eval=FALSE>>=
+data.all$kcal.noag<-(0) #zero kcal for all non-ag areas
+data.all$kcal.nonfood<- data.all$kcal-data.all$kcal.food
+data.all$kcal.prop<-data.all$kcal.food/data.all$kcal
+head(subset(data.all, kcal.prop>0))
+@
+
+We then join the calories column with the rank column. This orders the agricultural productivity, and other variables by the calories, but keeps the ranking of the land use classes. We generate three different calorie rankings, one for food, and one for non-food calories,  and one for all sources of calories;  marking them by different orders of magnitude.
+
+<<rankeverything,out.width='60',size='footnotesize', eval=FALSE>>=
+data.all$rank.all<-(data.all$kcal/max(data.all$kcal, na.rm=T)+data.all$rank)
+data.all$rank.nonfood<-(data.all$kcal.nonfood/max(data.all$kcal.nonfood, na.rm=T)+data.all$rank)+10
+data.all$rank.food<-(data.all$kcal.food/max(data.all$kcal.food, na.rm=T)+data.all$rank)+100
+head(data.all[which(data.all$kcal>0),])
+@
+
+\subsubsection{Compute areal coverage}
+Next we compute the non-agricultural area in each grid cell, and the area allocated to non food calories (feed, bio fuels, other) vs. food calorie production. First we check to see if there are any cases with calorie data where our cropland area product is 0. There are a few cases here, but they only represent a very small amount of global kcal.  This is an extremely minor part of the data, and likely results from processing error.
+
+<<interCA,out.width='60',size='footnotesize', eval=FALSE>>=
+sub<-subset(data.all, kcal>0 & (CA==0))
+ #cells with kcal but no crop f. area data
+sum(sub$kcal, na.rm=T)/sum(data.all$kcal, na.rm=T) #
+@
+
+Then we define the variables that we will need for later analysis, and sanity check these against those reported in Ramankutty et al. 2008. We also compute the non-crop area, feed/bio fuel/other area, and food area within each pixel in each ranked class. We disaggregate non-food vs food areas using the calorie fraction data, on the assumption that areal allocation is equal per unit of calories for a given pixel.
+
+<<addareas,out.width='60',size='footnotesize', eval=FALSE>>=
+area<-cell.area*nrow(subset(data.all, !is.na(rank))) #terrestrial area
+ice.free<- area- (cell.area*nrow(subset(data.all, LC==15))) #ice -free terrestrial area
+crop.area<-data.all$CA*cell.area #crop area
+pasture.area<-data.all$PA*cell.area #crop area
+crop.area[is.na(crop.area)] <- 0  #remove NAs
+pasture.area[is.na(pasture.area)] <- 0 #remove NAs
+non.ag<-ifelse(!is.na(data.all$rank), cell.area-crop.area-pasture.area, NA) #non.ag
+food.area<-crop.area*data.all$kcal.prop #food area
+feed.area<-crop.area-food.area #feed/biofuel area
+food.area[is.na(food.area)] <- 0 #remove NAs
+feed.area[is.na(feed.area)] <- 0  #remove NAs
+non.ag[is.na(other.ca.area)] <- 0  #remove NAs
+sum(crop.area, na.rm=T)/ice.free #sanity checks, should be ~12\%, 
+sum(pasture.area, na.rm=T)/ice.free #sanity checks, should be ~22\% , 
+sum(crop.area,pasture.area, na.rm=T)/ice.free #sanity checks, should be ~34\%,
+sum(non.ag,crop.area,pasture.area, na.rm=T)/area
+@
+
+We then assign the relevant area calculations to the data frame.  For all land classes except urban, first we give back non-agricultural area, then non-food (feed, bio fuel, and other ) crop area alongside pasture area, then finally  agricultural areas producing food calories.  For urban locations we reverse the grouping -- first  we give back non-food (feed,  bio fuel, other) agricultural area, then food crop areas and finally, non-agricultural areas. Notably, we simply embed this reversion for urban pixels in the data, to account for logic of high priority for avoiding encroaching on urban settlements, but it is not reflected in the variable names.
+<<assignmetrics,out.width='60',size='footnotesize', eval=FALSE>>=
+data.all$food.area<- ifelse(data.all$rank==5,food.area+non.ag, food.area) 
+data.all$feed.area<-feed.area+pasture.area 
+data.all$non.ag<-ifelse(data.all$rank==5,0, non.ag) 
+sum(crop.area, pasture.area, na.rm=T)/ice.free #sanity check
+sum(data.all$non.ag,data.all$feed.area,data.all$food.area,  na.rm=T)/area #sanity check
+sum(non.ag, crop.area,pasture.area, na.rm=T)/area #sanity check
+data.all$past.area<-pasture.area #add in pasture area for later
+@
+
+\subsubsection{Add in Country ids}
+During processing we lost the country identifiers, so here we add that back in now, both in ADMIN names, and ISO3's.
+<<addcountry,out.width='60',size='footnotesize', eval=FALSE>>=
+world<-getMap(resolution='low')
+lookup<-as.data.frame(cbind(as.character(world@data[,'ISO3']),world@data[,'ADMIN'],as.character(world@data[,'ADMIN'])))
+matched<-lookup[match(data.all$world, lookup$V2), ]
+data.all$country<-matched[[1]]
+data.all$ISO3<-matched[[3]]
+@
+
+Finally we save the processed data as an RDS file.
+<<saveall,out.width='60',size='footnotesize', eval=FALSE>>=
+saveRDS(data.all, "halfearthdata/processed/data.all.new.rds")
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Supplementary Methods B}
+\label{analysis}
+
+\subsection{Analysis overview}
+
+In this section we conduct the analysis underlying the results presented in the manuscript. To simulate crop calorie losses under Half-Earth, we gave back pixels (i.e. ``nature only landscapes"), or area in pixels (``shared landscapes"), on the planet in sequence of the rank and increasing calorie production, at global (no boundary), country (boundaries set by countries), and ecoregion  (boundaries set by Ecoregions) scales. We assess losses at 50\% land re-allocation under each scenario.
+
+\subsection{Read data}
+
+First we read in data. 
+<<opendat,out.width='60',size='footnotesize'>>=
+data.all<-readRDS("halfearthdata/processed/data.all.new.rds")
+@
+
+Let's double check the number of countries and ecoregions. 
+<<checknu,out.width='60',size='footnotesize'>>=
+geocount<-c(length(unique(data.all$Dinn)),length(unique(data.all$ISO3)))
+geocount
+@
+
+Because we want consistency in the number of cells, and area, given back under each scenario, and because each of the polygon boundaries for the ecoregions, countries and the land cover datasets are not exactly the same, we ensure NAs across the datasets are consistent. In addition we remove the NAs in the land cover data which represent water bodies, so we are working only on the terrestrial land surface area from here on in.
+<<setNA,out.width='60',size='footnotesize'>>=
+data.all<-subset(data.all, !is.na(Dinn) & !is.na(country) & !is.na(rank))
+@
+
+Now let's check how many countries and ecoregions we are working with now.
+<<checknu2,out.width='60',size='footnotesize'>>=
+subgeocount<-c(length(unique(data.all$Dinn)),length(unique(data.all$ISO3)))
+subgeocount
+@
+
+\subsection{Run scenarios}
+
+We then write out a loop to compute the half-earth scenario for each geographical scale of analysis. All the processing is included as one chunk of code here, but is hopefully  laid out in a logical way that can be refactored if needed in future. It takes the following inputs:
+
+\begin{enumerate}
+\item geog = column name with the geographic identifier (i.e. indicating scale of analysis)
+\item data=  dataset (i.e. data.all)
+\item scen = character label for the scenario being run
+\end{enumerate}
+
+\newpage
+And then creates a list output of length 4. The first and second elements are the output for the ``nature only landscapes" approach to Half-Earth. The third and fourth are the outputs for the ``shared landscapes" approach. The first, and third, elements include all original variables in the data.all data.frame, alongside a range of new ones. As outlined below, these list elements and the new variables in them can be used to identify the exact pixels given back under any Half-Earth scenario (it includes a variable called below.mid with 1's to identify these cells), and for summarizing kcal losses by ecoregion and country.   The second and fourth elements of this list are dataframes with the following three columns summarizing losses under each scenario:
+
+\begin{enumerate}
+\item perc.world = cumulative sum of terrestrial land area given back
+\item kcal = kcal cumulative of the kcal lost in cells given back
+\item perc.kcal = cumulative sum of the percent of kcal given back
+\end{enumerate}
+
+Each of the lists for each scale of analysis are saved to their own RDS file.  Before we run this analysis we first call a function for computing cumulative sums while ignoring NAs. We also re-call the cell area. 
+
+
+<<cumulativeNA, out.width='60',size='footnotesize',  eval=FALSE>>=
+cum.na <- function(x) { #cumulative sum, ignore NA function
+x[which(is.na(x))] <- 0
+return(cumsum(x))}
+cell.area <-8439*8439 #define cell area
+@
+
+And now we run the scenarios.
+<<functiontocomputeloss, out.width='60',size='footnotesize',  eval=FALSE>>=
+#############################SETUP#####################################
+geog.n<-list(1,as.factor(data.all$Dinn), as.factor(data.all$ISO3))#geographic ids
+scen<-c("global", "ecoregion", "country") #scenarios
+
+geog.n<-list(1)#geographic ids
+scen<-c("global") #scenarios
+
+
+for(i in 1:length(geog.n)){
+  
+data<-data.all
+geog<-geog.n[[i]]
+dat.split<-split(data,geog) #split data
+
+#############################NATURE ONLY APPROACH#########################
+#ORDER CELLS BY RANK#
+dat.split.s<-lapply(dat.split, function(x) x[order(x$rank.all),])
+
+#IDENTIFY GRID CELLS TO GIVE BACK#
+dat.split.s<-dat.split.s[lapply(dat.split.s,nrow)>0] #remove locations with no data
+dat.split.s<-lapply(dat.split.s, function(x) cbind(x, 1/nrow(x))) #assign numbers
+dat.split.s<-lapply(dat.split.s, function(x) cbind(x, round(cumsum(x$`1/nrow(x)`), digits=2)))  #add in the cumulative percentage for each.
+names<-c(colnames(dat.split.s[[1]])[1:26], "id", "perc.area") #reset names
+dat.split.s<-lapply(dat.split.s, setNames, names) 
+dat.split.s<-lapply(dat.split.s, function(x) cbind(x, ifelse(x$perc.area<0.51, 1,0)))
+dat.split.all.short<-rbindlist(dat.split.s) #use rbindList, quicker
+
+#COMPUTE THE PERCENT LOSSES BY AREA ACROSS GEOG UNITS#
+dat.all.sum.short<-ddply(dat.split.all.short,"perc.area", summarize,
+                     kcal.sum=sum(kcal, na.rm=T),
+                     PA.sum=sum(PA*cell.area, na.rm=T), 
+                     CA.sum=sum(CA*cell.area, na.rm=T), 
+                     kcal.food.sum=sum(kcal.food, na.rm=T),
+                     kcal.feed.sum=sum(kcal.nonfood, na.rm=T)
+                     ) #summarize the kcal by percent area, take time 
+dat.all.sum.short$perc.kcal<-cumsum(dat.all.sum.short$kcal.sum)/max(cumsum(dat.all.sum.short$kcal.sum))
+dat.all.sum.short$perc.CA<-cumsum(dat.all.sum.short$CA.sum)/max(cumsum(dat.all.sum.short$CA.sum)) 
+dat.all.sum.short$perc.PA<-cumsum(dat.all.sum.short$PA.sum)/max(cumsum(dat.all.sum.short$PA.sum)) 
+dat.all.sum.short$perc.kcal.non<-cumsum(dat.all.sum.short$kcal.feed.sum)/max(cumsum(dat.all.sum.short$kcal.feed.sum)) 
+dat.all.sum.short$perc.kcal.food<-cumsum(dat.all.sum.short$kcal.food.sum)/max(cumsum(dat.all.sum.short$kcal.food.sum)) 
+
+
+
+
+#############################SHARED APPROACH###############################
+#MAKE DATA LONG#
+vars<-setdiff(colnames((dat.split[[1]])), c("feed.area", "food.area", "non.ag"))
+dat.split.l <-lapply(dat.split, function(x) melt(x, id.vars = c(vars), value.name="area", variable.name="Area.type")) 
+head(dat.split.l[[1]])
+#DEFINE NEW RANK AND OUTCOME VARIABLES#
+dat.split.l<-lapply(dat.split.l , function(x) cbind(x, ifelse(x$Area.type=="non.ag",
+x$rank.all,ifelse(x$Area.type=="feed.area", x$rank.nonfood, x$rank.food)), #new rank column
+ifelse(x$Area.type=="non.ag", 0, 
+ifelse(x$Area.type=="feed.area", x$kcal.nonfood, x$kcal.food)), #new kcal
+ifelse(x$Area.type=="feed.area", x$kcal.nonfood,0), #new kcal.nonfood
+ifelse(x$Area.type=="food.area", x$kcal.food,0), #new kcal. food
+ifelse(x$Area.type=="non.ag", 0, x$CA*cell.area), #new CA column
+ifelse(x$Area.type=="non.ag", 0,x$past.area))) #new PA column
+
+names<-c(colnames(dat.split.l[[1]])[1:25], "rank.new",
+         "kcal.new", "kcal.new.feed", "kcal.new.food","CA.n", "PA.n") #reset names
+dat.split.l<-lapply(dat.split.l, setNames, names) 
+
+#ORDER CELLS BY NEW RANK#
+dat.split.l<-lapply(dat.split.l, function(x) x[order(x$rank.new),])
+
+#IDENTIFY GRID CELLS TO GIVE BACK#
+dat.split.l<-lapply(dat.split.l , function(x) cbind(x,cum.na(x$area), #cumsum area
+       rep(nrow(x)*cell.area*(1/3), nrow(x)))) #total area 
+dat.split.l<-lapply(dat.split.l , function(x) 
+        cbind(x, round(x$`cum.na(x$area)`/(x$`rep(nrow(x) * cell.area * (1/3), nrow(x))`), digits=2),
+               ifelse(x$`cum.na(x$area)`<= (x$`rep(nrow(x) * cell.area * (1/3), nrow(x))`)/2, 1, 0))) #area percent
+        names<-c(colnames(dat.split.l[[1]])[1:31], "cum.sum.area",  
+         "tot.area",  "perc.area", "below.med") #set names
+
+dat.split.l<-lapply(dat.split.l, setNames, names) 
+
+dat.split.all<-rbindlist(dat.split.l) #use rbindList, quicker
+
+#COMPUTE THE PERCENT LOSSES BY AREA ACROSS GEOG UNITS#
+dat.all.sum<-ddply(dat.split.all,"perc.area", summarize,
+                     kcal.sum=sum(kcal.new, na.rm=T),
+                     PA.sum=sum(PA.n, na.rm=T), 
+                     CA.sum=sum(CA.n, na.rm=T), 
+                     kcal.food.sum=sum(kcal.new.food, na.rm=T),
+                     kcal.feed.sum=sum(kcal.new.feed, na.rm=T)
+                     ) #summarize the kcal by percent area, take time 
+dat.all.sum$perc.kcal<-cumsum(dat.all.sum$kcal.sum)/max(cumsum(dat.all.sum$kcal.sum))
+dat.all.sum$perc.CA<-cumsum(dat.all.sum$CA.sum)/max(cumsum(dat.all.sum$CA.sum)) 
+dat.all.sum$perc.PA<-cumsum(dat.all.sum$PA.sum)/max(cumsum(dat.all.sum$PA.sum)) 
+dat.all.sum$perc.kcal.non<-cumsum(dat.all.sum$kcal.feed.sum)/max(cumsum(dat.all.sum$kcal.feed.sum)) 
+dat.all.sum$perc.kcal.food<-cumsum(dat.all.sum$kcal.food.sum)/max(cumsum(dat.all.sum$kcal.food.sum)) 
+
+#############################SAVE RESULT####################################
+return<- list(dat.split.all.short, dat.all.sum.short, dat.split.all, dat.all.sum)
+path<-paste("halfearthdata/processed/",scen[i],"processed.rds", sep="")
+saveRDS(return, path)
+}
+@
+
+\newpage
+\subsection{Main Text Figures}
+First we read in the data processed in the previous subsection.
+<<readprocessed,out.width='60',size='footnotesize'>>=
+global<-readRDS("halfearthdata/processed/globalprocessed.rds")
+ecoregion<-readRDS("halfearthdata/processed/ecoregionprocessed.rds")
+country<-readRDS("halfearthdata/processed/countryprocessed.rds")
+@
+
+\subsubsection{Figure 1}
+We then join all of the data together for plotting. Here we are interested in the results for both nature only landscapes and shared landscapes approaches, and comparing the summary results for each of these. To do this we, we need to call the second, and fourth elements of each of the lists read in above.
+<<join,out.width='60',size='footnotesize'>>=
+to.plot<-rbind(global[[2]], country[[2]], ecoregion[[2]],
+               global[[4]], country[[4]], ecoregion[[4]])
+
+to.plot$Scenario<-c(rep("Global.NatOnly", nrow(global[[2]])), 
+                    rep("Country.NatOnly", nrow(country[[2]])),
+                    rep("Ecoregion.NatOnly", nrow( ecoregion[[2]])),
+                    rep("Global.Shared", nrow(global[[4]])),
+                    rep("Country.Shared", nrow(country[[4]])), 
+                    rep("Ecoregion.Shared", nrow( ecoregion[[4]])))
+
+to.plot$Scenario1<-c(rep("Global", nrow(global[[2]])),
+                     rep("Country", nrow(country[[2]])),
+                     rep("Ecoregion", nrow( ecoregion[[2]])),
+                     rep("Global", nrow(global[[4]])), rep("Country", nrow(country[[4]])), 
+                     rep("Ecoregion", nrow( ecoregion[[4]])))
+
+to.plot$Scenario2<-c(rep("Nature Only", nrow(global[[2]])), 
+                     rep("Nature Only", nrow(country[[2]])), 
+                     rep("Nature Only", nrow( ecoregion[[2]])),
+                     rep("Shared", nrow(global[[4]])), 
+                     rep("Shared", nrow(country[[4]])),
+                     rep("Shared", nrow( ecoregion[[4]])))
+
+@
+
+Before we plot we print the aggregated losses for each scenario below.  These are the main results reported in the manuscript.
+<<summarise,out.width='60',size='footnotesize'>>=
+to.plot.sub<-subset(to.plot,perc.area<0.501)
+ddply(to.plot.sub, c("Scenario1" ,"Scenario2"), summarize, 
+      kcal.loss.feed=max(perc.kcal.non)*100,
+      kcal.loss.food=max(perc.kcal.food)*100,
+      CA.loss=max(perc.CA )*100,
+      PA.loss=max(perc.PA )*100
+      )
+@
+
+And then we make this summary data long for plotting, and make the variable names intelligible.
+<<makelongsum,out.width='60',size='footnotesize'>>=
+vars<-setdiff(colnames(to.plot), c("perc.kcal.food", "perc.kcal.non", "perc.PA","perc.CA"))
+to.plot.l <- melt(to.plot, id.vars = c(vars), value.name="loss", variable.name="Loss.type") #make data long
+
+to.plot.l$Loss.type<-recode(to.plot.l$Loss.type,  #make var names intelligable
+  " c('perc.kcal.food')= 'D. Food kcal';
+   c('perc.kcal.non') = 'C. Feed, biofuel, and other kcal';
+   c('perc.PA')= 'B. Pasture land';
+   c('perc.CA')= 'A. Crop land'" )
+@
+
+We then plot out the different scenarios. These plots form the basis for figure 1 given in the main text of our manuscript.
+<<fig1, fig.cap='Feeding the world under a global deal for nature. The horizontal dashed line shows the Half-Earth line.  Left side: Nature only landscapes, Right side: Shared landscapes. green= global, blue= country, red= ecoregion.', out.width='0.6\\linewidth', fig.height=10, fig.width=5,size='footnotesize'>>=
+ggplot(to.plot.l, aes(perc.area*100,loss*100, color=Scenario1))+
+  geom_vline(xintercept=50, lty=2, colour="black")+
+  geom_line()+
+  scale_colour_manual(values = c("#56B4E9","#E75E00", "#009E73", "gray"))+
+  theme_bw()+
+  theme(plot.background = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(), 
+           # strip.text.x = element_blank(),
+        strip.background = element_rect(colour = "white", fill = "white"),
+        legend.key = element_rect(fill = "white", colour = "white"))+
+  ylab("Percent agricultural loss")+
+  xlab("Percent of earth given back")+
+    # ylab("")+
+    # xlab("")+
+  facet_wrap(~Loss.type*Scenario2, nrow=4, ncol=2) + theme(legend.position="none")
+@
+% # png("PlotA_HE.png", width = 10, height = 16,units="cm", res = 600) 
+%   # dev.off()
+
+\subsubsection{Figure 2}
+Here we map out the scenarios. First we need to identify which pixels were given back under each scenario, and the calories lost in each. We do this to visualize where the calorie trade-offs are locally. We isolate the data needed for plotting.
+<<getmapdat,out.width='60',size='footnotesize'>>=
+global.NatOnly<-subset(global[[1]], `ifelse(x$perc.area < 0.51, 1, 0)`==1)
+country.NatOnly<- subset(country[[1]], `ifelse(x$perc.area < 0.51, 1, 0)`==1)
+ecoregion.NatOnly<-subset(ecoregion[[1]], `ifelse(x$perc.area < 0.51, 1, 0)`==1)
+global.Sharing<-subset(global[[3]], below.med==1)
+country.Sharing<- subset(country[[3]], below.med==1)
+ecoregion.Sharing<-subset(ecoregion[[3]], below.med==1)
+
+kcal.max<-round(max(log10((global.NatOnly$kcal/1000)+1), na.rm=T), digits=1)
+kcal.min<-round(min(log10((global.NatOnly$kcal/1000)+1), na.rm=T), digits=1)
+@
+
+Then we write a function to map the kcal lost for each scenario in each location given back. We choose a blue colour gradient to aid discernment of logged steps in the scale.
+<<mapscen,out.width='60',size='footnotesize'>>=
+breaks=c(0:9)
+map.scenarios<-function(data, kcal){
+df<-data.frame(data$x, data$y,kcal)
+dfr<- rasterFromXYZ(df)  #Convert first two columns as lon-lat and third as value 
+crs(dfr)<-"+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+values(dfr)<-log10((values(dfr)/1000)+1)
+colfunc <- colorRampPalette(c("gray95", "#edf8b1", "#c7e9b4","#7fcdbb", "#41b6c4","#1d91c0",
+                              "#225ea8", "#253494","#081d58", "black")) #set the color
+data(wrld_simpl) #get world map data
+wrld <- spTransform(wrld_simpl, crs(dfr))
+plot(wrld, col='light gray', border="transparent",lwd=0.2)
+plot(dfr,  col=colfunc(10),add=TRUE, legend.width = 1, legend.shrink=0.5,
+     legend.args=list(text=' loss (log10 kcal)' ,side=4,cex=0.8,line=2), breaks=breaks)
+}
+@
+
+And then we plot all of these together. The result forms the basis of figure 2 in the main text of the manuscript.
+<<fig1c,fig.cap='Maps of calorie losses under each Half-Earth scenario. From top to bottom: global, country and ecoregion. Legends show kcal losses in log10 units. Left side: Nature only landscapes, Right side: Shared landscapes.', out.width='0.8\\linewidth', fig.height=10, fig.width=10,size='footnotesize'>>=
+par(mfrow = c(3,2),
+      oma = c(0,0,0,0) ,
+          mar = c(0,0,1,0))
+map.scenarios(global.NatOnly,  global.NatOnly$kcal)
+map.scenarios(global.Sharing,global.Sharing$kcal.new)
+map.scenarios(country.NatOnly,country.NatOnly$kcal)
+map.scenarios(country.Sharing,country.Sharing$kcal.new)
+map.scenarios(ecoregion.NatOnly,ecoregion.NatOnly$kcal)
+map.scenarios(ecoregion.Sharing,ecoregion.Sharing$kcal.new)
+@
+
+% png("PlotC_HE.png", width = 26, height = 15,units="cm", res = 600)
+% dev.off()
+ % colfunc <- colorRampPalette(c("gray95", "#ffeda0", "#fed976","#feb24c", "#fd8d3c","#fc4e2a",
+ %                               # "#e31a1c", "#bd0026","#800026", "black")) #set the color
+ %   # colfunc <- colorRampPalette(c("gray95", "dark orange", "red", "dark red")) #set the color ramp
+ %  colfunc <- colorRampPalette(c("gray95","yellow","orange", "dark orange", "red",  "black")) #set the color ramp
+ %  # colfunc <- colorRampPalette(c("gray95","red","orange", "yellow", "green",  "blue",  "purple")) #set the color ramp
+ %  # colfunc <-c("gray95","red","orange", "yellow", "green", "dark green" , "blue", "dark blue") #set the color ramp
+\newpage
+\subsection{Country calorie losses}
+Here we report the countries with calorie losses under the two different conservation approaches at the ecoregion scale. We report countries with the top losses under the natures only landscapes approach below. Notably China and India show substantial calorie losses.
+<<losshardcountry, out.width='60',size='footnotesize'>>=
+country.loss.hard<-ddply(ecoregion.NatOnly, c("country"), summarize,  #global
+                              kcal.loss=sum(kcal, na.rm=T))
+head(country.loss.hard[order(-country.loss.hard$kcal.loss),])
+@
+
+We then compute the losses under a shared landscapes approach. While these reduce the losses for China and India by at least a half, the losses still remain high.
+<<losssoftcountry, out.width='60',size='footnotesize'>>=
+country.loss.soft<-ddply(ecoregion.Sharing, c("country"), summarize,  #global
+                              kcal.loss=sum(kcal.new, na.rm=T))
+head(country.loss.soft[order(-country.loss.soft$kcal.loss),])
+@
+
+Next we compute the total calories produced in different countries. Below we show the top calorie producing nations.
+<<totalkcalcountry, out.width='60',size='footnotesize'>>=
+country.kcal<-ddply(data.all, c("country"), summarize,  #global
+                              kcal=sum(kcal, na.rm=T))
+head(country.kcal[order(-country.kcal$kcal),])
+@
+
+And finally we join all of these data, to estimate the percent losses. We are particularly interested in the losses under the shared approach, which we report in the main text of the paper. We show the top losses in percent terms below.
+<<losspercent, out.width='60',size='footnotesize'>>=
+kcal.count<-country.kcal[match(country.loss.soft$country,country.kcal$country), ]
+country.loss.soft$perc.loss<-country.loss.soft$kcal.loss/ kcal.count$kcal
+(country.loss.soft[order(-country.loss.soft$perc.loss),])[1:10,]
+@
+
+\subsubsection{Ecoregion coverage}
+In an earlier publication Dinerstein et al. \cite{Dinerstein2017} reported that Half-Earth has been already attained, or been deemed achievable, in ~49\% of the Earth's 846 terrestrial Ecoregions. Dinerstein et al. identified 98/846 (or 12\%) had achieved more than half protected, and that 313/846 Ecoregions (or 37\%) to have not achieved half protected, but to have enough ``unaltered habitat" available to achieve it. They defined this unaltered habitat (also synonymously labelled as both ``natural" in the main text, and ``natural/semi-natural" in the Supplementary Methods) by a two-step procedure, first using satellite classified tree cover data to identify forests, and then defining remaining habitats according to anthropogenic biomes. However, in their analysis they did not quantitatively identify the trade-offs with agricultural production. Here we identify how many of the world's Ecoregions could achieve the 50\% figure without a loss of calories, under both the nature only landscapes, and shared landscapes approaches.  We find that for a nature only landscapes approach, Half-Earth can be achieved in 101 or the 775, or 14\%, of Ecoregions used in this analysis without any loss of calories.
+
+<<ecoregioncalcheck, out.width='60',size='footnotesize'>>=
+lossbyeco<-ddply(ecoregion.NatOnly, 'Dinn', summarize, 
+      loss=sum(kcal, ra.rm=T)) 
+nrow(subset(lossbyeco, loss<10)) #number of ecoregions with no calorie loss
+(nrow(lossbyeco[which(lossbyeco$loss<10),]))/nrow(lossbyeco) #percent of ecoregions
+@
+
+Interestingly, under a shared landscapes approach, we find that Half-Earth can be achieved in nearly five times more ecoregions without calorie losses (or 65\%).
+<<ecoregioncalchecksparing, out.width='60',size='footnotesize'>>=
+lossbyeco.s<-ddply(ecoregion.Sharing, 'Dinn', summarize, 
+      loss=sum(kcal.new, ra.rm=T)) 
+nrow(subset(lossbyeco.s, loss<10)) #number of ecoregions with no calorie loss
+(nrow(lossbyeco.s[which(lossbyeco.s$loss<10),]))/nrow(lossbyeco) #percent of ecoregions.
+@
+
+\subsection{Co-benefits}
+
+To understand the co-benefits of a Half-Earth scenario, (e.g. such as climate mitigation potential) it is important to understand the gross change in vegetation that might result from such a plan. Here we show the how agriculturally productive land given back under each scale of analysis (country, ecoregion, and global), influences change in the coverage of potential vegetation.  To do this we use the Potential Natural Vegetation (PNV) data set \cite{RamankuttyFoley1999}.
+
+First we need to calculate PNV coverage in area without agricultural production -- this represents a baseline. We will then calculate the PNV area inside agriculturally productive pixels given back under each Half-Earth scenario. The ratio of these two numbers is used to indicate the potential vegetation benefits of giving back agricultural land. It should be noted that the baseline estimates are consistent across scenarios, but are likely to overestimate PNV in current in non-agricultural lands because these lands are unlikely to be completely unaltered by human activity (and hence our estimates of PNV gains are likely to be conservative).
+
+\subsubsection{Nature only landscapes}
+First we get the number of cells for the baseline PNV, in non-agriculturally productive and non-urban land globally.
+<<baselineNPV,out.width='60',size='footnotesize'>>=
+cell.area <-8439*8439 #define cell area
+data.all$PNV.base<-ifelse(data.all$rank >=7, NA,data.all$PNV)
+
+baseline<-ddply(data.all, 'PNV.base', 
+      summarize, 
+      n.cells= length(x),
+      ag.area= sum(CA*cell.area, PA*cell.area, na.rm=T),
+      area=length(x)*cell.area)
+
+baseline$PNV.base<-baseline$area-baseline$ag.area #this is the baseline vegetation on the planet
+@
+
+Then we obtain the PNV in recovered agricultural land in each scenario.
+<<PNVrecovered,out.width='60',size='footnotesize'>>=
+world.no<-ddply(global.NatOnly, 'PNV', 
+      summarize, 
+      area= sum(CA*cell.area,PA*cell.area, na.rm = T),
+      n.cells= length(x))
+
+country.no<-ddply(country.NatOnly, 'PNV', 
+      summarize, 
+      area= sum(CA*cell.area,PA*cell.area, na.rm = T),
+      n.cells= length(x))
+
+ecoregion.no<- ddply(ecoregion.NatOnly, 'PNV', 
+      summarize, 
+      area= sum(CA*cell.area,PA*cell.area, na.rm = T),
+      n.cells= length(x))
+@
+
+Finally we join all data together into a common data.frame. The Gain.prop column represents the proportional gain in cells for each PNV class for agriculturally productive land.
+<<joinrecovered,out.width='60',size='footnotesize'>>=
+gain<-c(world.no$area/baseline$PNV.base, 
+        country.no$area/baseline$PNV.base,
+        ecoregion.no$area/baseline$PNV.base)
+scenario<-c(rep("Global", 16), rep("Country", 16), rep("Ecoregion", 16))
+class<-rep(world.no$PNV, 3)
+gain.df.no<-data.frame(gain, scenario, class)
+colnames(gain.df.no)<-c("Gain.prop", "Scenario", "PNV.class")
+gain.df.no<-(subset(gain.df.no, !is.na(PNV.class))) # remove NAs
+@
+
+We then write the code to plot the results. 
+<<PNVNO,out.width='60',size='footnotesize'>>=
+NO<-ggplot(gain.df.no, aes( PNV.class,Gain.prop*100, colour=Scenario))+
+# geom_point()+
+  geom_hline(yintercept=c(25,50,75,100), lty=2, colour="black", lwd=0.1)+
+  geom_line()+
+   scale_colour_manual(values = c("#56B4E9","#E75E00", "#009E73"))+
+  theme_bw()+
+   theme(plot.background = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(), 
+       strip.background = element_rect(colour = "white", fill = "white"))+
+    theme(legend.position="none")     +      
+  scale_x_continuous(breaks= 1:15, labels= c("1" ="Tropical Forest (E)", "2" ="Tropical Forest (D)",
+                                             "3" ="Temp.Forest (BE)","4" ="Temp.Forest (NE)",
+                                             "5" ="Temp.Forest (D)","6" ="Boreal.Forest (E)",
+                                             "7" ="Boreal.Forest (D)","8" ="Mixed Forest (E/D)",
+                                             "9" ="Savanna","10" ="Grassland/Steppe","11" = "Dense Shrubland",
+                                             "12" = "Open Shrubland", "13" ="Tundra", "14" ="Desert", 
+                                             "15" ="Polar"))+
+   ylab("Change in area (%)")+
+  xlab("")+
+  coord_flip()
+@
+
+\subsubsection{Shared lanscapes}
+Now we repeat the analysis except for the sharing landscapes approach.
+<<PNVrecoveredsharing, out.width='60',size='footnotesize'>>=
+world.s<-ddply(global.Sharing, 'PNV', 
+      summarize, 
+      n.cells= length(x),
+      area= sum(CA.n,PA.n, na.rm = T)
+      )
+country.s<-ddply(country.Sharing, 'PNV', 
+      summarize, 
+      n.cells= length(x),
+      area= sum(CA.n,PA.n, na.rm = T))
+
+ecoregion.s<- ddply(ecoregion.Sharing, 'PNV', 
+      summarize, 
+      n.cells= length(x),
+      area= sum(CA.n,PA.n, na.rm = T))
+@
+
+And join all data together into a common data.frame.
+<<joinrecoveredsharing, out.width='60',size='footnotesize'>>=
+gain.s<-c(world.s$area/baseline$PNV.base, 
+        country.s$area/baseline$PNV.base,
+        ecoregion.s$area/baseline$PNV.base)
+scenario<-c(rep("Global", 16), rep("Country", 16), rep("Ecoregion", 16))
+class<-rep(world.s$PNV, 3)
+gain.df<-data.frame(gain.s, scenario, class)
+colnames(gain.df)<-c("Gain.prop", "Scenario", "PNV.class")
+gain.df.s<-(subset(gain.df, !is.na(PNV.class))) # remove NAs
+@
+
+Then we create the plot.
+<<PNVS,out.width='60',size='footnotesize'>>=
+s<-ggplot(gain.df.s, aes( PNV.class,Gain.prop*100, colour=Scenario))+
+  geom_hline(yintercept=c(25,50,75,100), lty=2, colour="black", lwd=0.1)+
+  geom_line()+
+  scale_colour_manual(values = c("#56B4E9","#E75E00", "#009E73"))+
+  theme_bw()+
+   theme(plot.background = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(), 
+       strip.background = element_rect(colour = "white", fill = "white"))+
+    theme(legend.position="none")+      
+  scale_x_continuous(breaks= 1:15, labels= c("1" ="", "2" ="", 
+                                             "3" ="","4" ="","5" ="","6" ="",
+                                             "7" ="","8" ="","9" ="","10" ="",
+                                             "11" = "","12" = "", "13" ="", "14" ="", 
+                                             "15" =""))+
+   ylab("Change in area (%)")+
+  xlab("")+
+  coord_flip()
+@
+
+We also print a table of the gains below which show the percent gain figures under each scenario.
+<<PNVSsummary,out.width='60',size='footnotesize'>>=
+all.gain<-data.frame(gain.df.no$Scenario, gain.df.no$PNV.class, gain.df.no$Gain.prop, gain.df.s$Gain.prop)
+colnames(all.gain)<-c("Scenario", "PNV.class", "Nat.Only", "Shared")
+all.gain$PNV.class<-recode(all.gain$PNV.class,
+ " c('1')= 'Tropical Forest (E)';
+   c('2') = 'Tropical Forest (D)';
+   c('3')= 'Temp.Forest (BE)';
+   c('4')= 'Temp.Forest (NE)';
+   c('5')= 'Temp.Forest (D)';
+   c('6')= 'Boreal.Forest (E)';
+   c('7')= 'Boreal.Forest (D)';
+   c('8')= 'Mixed Forest (E/D)';
+   c('9')= 'Savanna';
+   c('10')= 'Grassland/Steppe'; 
+   c('11')= 'Dense Shrubland';
+   c('12')= 'Open Shrubland';
+   c('13')= 'Tundra';
+   c('14')= 'Desert';
+   c('15')= 'Polar'
+  ")
+@
+\newpage
+<<PNVSsummary2,out.width='60',size='footnotesize'>>=
+all.gain
+@
+\newpage
+\section{Supplementary Figures}
+\label{analysissup}
+
+In this section we plot the supplementary figures that we do not present in the main text of the manuscript.
+
+\subsubsection{Supplementary Figure 1}
+First we plot the maps of binarized calorie losses by country under Half-Earth. Each plot shows Ecoregions in which Half-Earth can be achieved without loss of calories. Note that Antarctica and Greenland are listed as locations under a ``Nature only landscapes" approach where loss of calories occurs. This is due to the fact these locations are listed under a common ``Rock and ice" Ecoregion, along with other locations on the Earth,such as a few pixels in Northern India and Nepal, which are subject to calorie loss. Removing this ``Rock and ice" Ecoregion from this analysis makes no difference to the percentage of losses for this approach (e.g. 101/775 vs 100/775).
+
+
+<<figS2,tidy=FALSE, fig.cap='Ecoregions where Haf-Earth be achieved without a loss of calories. Gray= Ecoregions with no loss of calories, Red= Ecoregions with loss of calories. Top = Nature only landscsapes. Bottom = Shared landscapes.', out.width='0.6\\linewidth', fig.height=5, fig.width=5,size='footnotesize'>>=
+map.ecoregion.loss<-function(data, lossby){
+data.all$Dinn.no<-ifelse(data.all$Dinn  %in% c(subset(lossby, loss<10)$Dinn), 1,0 )
+dfloss<-data.frame(data.all$x, data.all$y,data.all$Dinn.no)
+dfrloss<- rasterFromXYZ(dfloss)  #Convert first two columns as lon-lat and third as value 
+crs(dfrloss)<-"+proj=eck4 +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+ colfunc <- colorRampPalette(c("red", "light gray")) #set the color ramp
+data(wrld_simpl) #get world map data
+wrld <- spTransform(wrld_simpl, crs(dfrloss))
+plot(wrld, col='light gray', border="transparent",lwd=0.2)
+plot(dfrloss, col=colfunc(10), add=TRUE, legend=F)
+}
+
+par(mfrow = c(2,1),
+      oma = c(0,0,0,0) ,
+          mar = c(0,0,1,0))
+map.ecoregion.loss(data.all, lossbyeco)
+map.ecoregion.loss(data.all, lossbyeco.s)
+
+@
+
+% # png("SI1.png", width = 26, height = 15,units="cm", res = 600)
+% # dev.off()
+
+% For completeness we check calorie losses in Ecoregions in both Antarctica and Greenland. There is loss in Ecoregion 615, in both of these.
+% <<sanitycalorieloss, out.width='60',size='footnotesize'>>=
+% View((lossbyeco[order(-lossbyeco$loss),]))
+% sub.ant<-(subset(data.all,ISO3=="Antarctica"))
+% sub.green<-(subset(data.all,ISO3=="Greenland"))
+% subset(lossbyeco, Dinn %in% sub.ant$Dinn) #this dhows the cases of Antarctica.
+% subset(lossbyeco, Dinn %in% sub.green$Dinn) #this dhows the cases of Antarctica.
+% sub.615<-(subset(data.all,Dinn==615))
+%@
+ 
+% We plot this out -- we see that these losses are derived from Northern India and Nepal.
+% <<figS3,tidy=FALSE, fig.cap='Calorie losses in the Rock and Ice Ecoregion.', fig.height=5, fig.width=5>>=
+% map.scenarios(sub.615,  sub.615$kcal)
+
+
+% # png("SI2.png", width = 26, height = 15,units="cm", res = 600)
+% # dev.off()
+
+\newpage
+\subsubsection{Supplementary Figure 2}
+Then we plot out the co-benefits of Half-Earth for recover of natural vegetation. As we see from below, the ecoregion based Half-Earth plan leads to large gains in grasslands and modest gains in tropical and temperate deciduous forests, and in savanna and shrublands.
+<<fig3,tidy=FALSE, fig.cap='Recovery of natural vegetation from agriculture under each Half-Earth Scenario.  The x axis shows the percent gains in areal coverage in potential natural vegetation attained by giving back least agriculturally productive lands. green= global, blue= country, red= ecoregion. E=evergreen, D=deciduous, N=needle, B=broadleaf. Left = Nature only landscsapes. Right = Shared landscapes.', out.width='0.6\\linewidth', fig.height=6, fig.width=8,size='footnotesize'>>=
+plot_grid( NO,s, align =c("v", "h"), ncol = 2)
+@
+ % # png("PlotC.png", width = 15, height = 12,units="cm", res = 600) 
+ % # dev.off()
+ 
+ 
+\newpage
+\subsubsection{Supplementary Figure 3}
+
+And finally we plot out a flow diagram for the analysis, which we reference in the methods section of our paper.
+
+\includegraphics[scale=0.4]{fig3.pdf}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Session information}
+<<sessionInfo, size='footnotesize'>>= 
+sessionInfo()
+@ 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\printbibliography
+
+\end{document}
